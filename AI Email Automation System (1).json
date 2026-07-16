@@ -1,0 +1,1111 @@
+{
+  "name": "AI Email Automation System",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "readStatus": "unread"
+        },
+        "options": {}
+      },
+      "id": "507da706-e131-430e-a7d3-5f51b530cf04",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        240,
+        688
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "wHh7D620ltHFiG60",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "emailId",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "threadId",
+              "value": "={{ $json.threadId }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "subject",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "4",
+              "name": "senderEmail",
+              "value": "={{ $json.from }}",
+              "type": "string"
+            },
+            {
+              "id": "5",
+              "name": "senderName",
+              "value": "={{ $json.from.split(\"<\")[0].trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "6",
+              "name": "recipientEmail",
+              "value": "={{ $json.to }}",
+              "type": "string"
+            },
+            {
+              "id": "7",
+              "name": "emailBody",
+              "value": "={{ $json.text || $json.html }}",
+              "type": "string"
+            },
+            {
+              "id": "8",
+              "name": "receivedDate",
+              "value": "={{ $json.date }}",
+              "type": "string"
+            },
+            {
+              "id": "9",
+              "name": "hasAttachments",
+              "value": false,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "45048459-2578-412e-a147-4a76073a0c52",
+      "name": "Extract Email Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        464,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the following email and classify it.\n\nSubject: {{ $json.subject }}\nFrom: {{ $json.senderEmail }}\nBody: {{ $json.emailBody }}\n\nClassify this email into one of these categories: Support, Sales, Complaint, Career, General, or Spam.\nDetermine the priority (High, Medium, Low).\nDetect the sentiment (Positive, Neutral, Negative).\nDetect the language.\nGenerate a brief summary (max 100 words).\nGenerate a professional reply (max 200 words).\n\nReturn ONLY valid JSON with these exact fields: category, priority, sentiment, language, summary, reply.\nNo additional text or explanation.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an expert email classification assistant. Analyze emails and return structured JSON data with category, priority, sentiment, language, summary, and reply fields. Categories: Support, Sales, Complaint, Career, General, Spam. Priority: High, Medium, Low. Sentiment: Positive, Neutral, Negative.",
+          "maxIterations": 3
+        }
+      },
+      "id": "474481a5-a0cf-4c4a-885d-64ffcfe9d650",
+      "name": "AI Email Classifier",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        688,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 500,
+          "temperature": 0.2
+        }
+      },
+      "id": "212d7ba1-c64f-46c9-b625-ef87bf97b82c",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        704,
+        784
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "KbWy8yovhwRGAfRV",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": {
+          "category": "Support",
+          "priority": "High",
+          "sentiment": "Negative",
+          "language": "English",
+          "summary": "Customer needs help accessing their account",
+          "reply": "Thank you for contacting us. We understand you are having trouble accessing your account. Our support team will assist you shortly."
+        }
+      },
+      "id": "1e51a401-4b6d-4c69-9db8-de9066389ac7",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        832,
+        784
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "80fe3c76-2be8-4db7-8719-52ba14932215",
+      "name": "Combine Email & AI Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1040,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.category }}",
+                    "rightValue": "Support",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Support"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.category }}",
+                    "rightValue": "Sales",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Sales"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.category }}",
+                    "rightValue": "Complaint",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Complaint"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.category }}",
+                    "rightValue": "Career",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Career"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.category }}",
+                    "rightValue": "General",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "General"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.category }}",
+                    "rightValue": "Spam",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Spam"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "11eb7646-b33a-4164-b466-20af62733cba",
+      "name": "Route by Category",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1264,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $json.emailId }}",
+        "message": "=<p>{{ $json.output.reply }}</p>\n\n<p>Best regards,<br>Support Team</p>",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Support Team"
+        }
+      },
+      "id": "4f3eedab-40e7-447e-9959-aae324ec7747",
+      "name": "Reply - Support",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1488,
+        208
+      ],
+      "webhookId": "1402eac2-dca8-440c-b7a6-43049aae7086",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "wHh7D620ltHFiG60",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 6
+      },
+      "id": "05ae432b-c301-4980-8ef6-1690598bcd74",
+      "name": "Merge All Replies",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1712,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $json.emailId }}",
+        "message": "=<p>{{ $json.output.reply }}</p>\n\n<p>For more information about our products and services, please visit our website or contact our sales team.</p>\n\n<p>Best regards,<br>Sales Team</p>",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Sales Team"
+        }
+      },
+      "id": "a4cd6840-35ca-4140-b2ac-5c07f657afbf",
+      "name": "Reply - Sales",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1488,
+        400
+      ],
+      "webhookId": "8de74024-3dfb-4b9d-bcd8-7baea810b808",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "wHh7D620ltHFiG60",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $json.emailId }}",
+        "message": "=<p>We sincerely apologize for any inconvenience you have experienced.</p>\n\n<p>{{ $json.output.reply }}</p>\n\n<p>Your feedback is important to us and we are committed to resolving this issue promptly.</p>\n\n<p>Best regards,<br>Customer Relations Team</p>",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Customer Relations Team"
+        }
+      },
+      "id": "eaab2563-6692-47e1-a342-96e9e9444b7e",
+      "name": "Reply - Complaint",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1488,
+        592
+      ],
+      "webhookId": "495019a9-d473-4b93-adcb-3735f921d3c7",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "wHh7D620ltHFiG60",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $json.emailId }}",
+        "message": "=<p>Thank you for your interest in joining our team!</p>\n\n<p>{{ $json.output.reply }}</p>\n\n<p>We will review your application and contact you if your qualifications match our current openings.</p>\n\n<p>Best regards,<br>Human Resources Team</p>",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Human Resources Team"
+        }
+      },
+      "id": "112f85b9-4c8d-42a6-a0e5-93e4d0a6c783",
+      "name": "Reply - Career",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1488,
+        784
+      ],
+      "webhookId": "2650c10b-4044-4605-ab0c-4c54869566ac",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "wHh7D620ltHFiG60",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $json.emailId }}",
+        "message": "=<p>{{ $json.output.reply }}</p>\n\n<p>Thank you for contacting us.</p>\n\n<p>Best regards,<br>Customer Service Team</p>",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Customer Service Team"
+        }
+      },
+      "id": "082af6fd-b035-4ba0-b9e8-d202fbd62bab",
+      "name": "Reply - General",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1488,
+        976
+      ],
+      "webhookId": "377bd082-63ac-4f88-8ae5-49c17dccbf0d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "wHh7D620ltHFiG60",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "replySent",
+              "value": "No",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "status",
+              "value": "Spam - No Reply Sent",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "92cfda9c-021c-4660-a6e2-c36072e4baf7",
+      "name": "No Reply - Spam",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1488,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "replySent",
+              "value": "={{ $json.output?.category === \"Spam\" ? \"No\" : \"Yes\" }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "status",
+              "value": "={{ $json.output?.category === \"Spam\" ? \"Spam - No Reply\" : \"Processed\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "febe1a85-89a7-4738-883c-3478f0750ffb",
+      "name": "Prepare for Logging",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1936,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "101",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "sample",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "89541a4f-066a-4ed9-a4b8-82ccbdeb39cf",
+      "name": "Log to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2160,
+        688
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "uUMv55YJEfmvFXV2",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "or",
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Prepare for Logging').item.json.output.priority }}",
+              "rightValue": "High",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "leftValue": "={{ $('Prepare for Logging').item.json.output.category }}",
+              "rightValue": "Complaint",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e63e7910-c88a-4dec-8aed-dd9b9bcdd0c4",
+      "name": "Check if High Priority",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2384,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "1",
+        "text": "=🚨 High Priority Email\n\nFrom: {{ $json.senderEmail }}\nSubject: {{ $json.subject }}\nCategory: {{ $json.output.category }}\nPriority: {{ $json.output.priority }}\nSentiment: {{ $json.output.sentiment }}\n\nSummary: {{ $json.output.summary }}",
+        "additionalFields": {
+          "disable_notification": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "40033ef0-ad72-49ae-bf33-7c44220d5eaa",
+      "name": "Send Telegram Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2608,
+        592
+      ],
+      "webhookId": "516e15a9-e817-4463-82c3-e325bd44bcab",
+      "credentials": {
+        "telegramApi": {
+          "id": "yBE0dYY6Ew2qRM3z",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "notificationSent",
+              "value": "No",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "3d56108a-52aa-4842-ac97-00e16130989e",
+      "name": "Skip Notification",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2608,
+        784
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "28d23831-be34-43ae-97a6-3342371e6d7f",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        1392
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "errorTimestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "errorMessage",
+              "value": "={{ $json.execution.error.message }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "errorNode",
+              "value": "={{ $json.execution.error.node.name }}",
+              "type": "string"
+            },
+            {
+              "id": "4",
+              "name": "workflowName",
+              "value": "={{ $json.workflow.name }}",
+              "type": "string"
+            },
+            {
+              "id": "5",
+              "name": "executionId",
+              "value": "={{ $json.execution.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "06f227ee-f1b0-4e5f-905c-7ce6748d0ef2",
+      "name": "Log Error Details",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        464,
+        1392
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "1",
+        "text": "=⚠️ Workflow Error\n\nWorkflow: {{ $json.workflowName }}\nNode: {{ $json.errorNode }}\nError: {{ $json.errorMessage }}\nExecution ID: {{ $json.executionId }}\nTime: {{ $json.errorTimestamp }}",
+        "additionalFields": {
+          "disable_notification": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "977ddf54-ef1b-49a2-b500-e1d911f853a3",
+      "name": "Notify Error via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        688,
+        1392
+      ],
+      "webhookId": "a9fc9761-55a1-4210-bce4-35cd03458366",
+      "credentials": {
+        "telegramApi": {
+          "id": "yBE0dYY6Ew2qRM3z",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## 📧 Email Trigger\nMonitors incoming Gmail messages",
+        "color": 2
+      },
+      "id": "9bb04b8e-9abf-410a-a122-b76a3a1a209c",
+      "name": "Sticky Note e32f350d",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        112,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🔍 Extract & Preprocess\nExtract email data and prepare for AI analysis",
+        "color": 3
+      },
+      "id": "48a28194-6e7e-4588-84dd-805ed612e898",
+      "name": "Sticky Note a7292919",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        112,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🤖 AI Classification\nAnalyze email content and classify into categories",
+        "color": 4
+      },
+      "id": "5f66dc14-4f2f-4ffc-ab48-26d2544912f9",
+      "name": "Sticky Note 839d4fc4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        112,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🔀 Smart Routing\nRoute emails based on category",
+        "color": 5
+      },
+      "id": "2a352c5a-d9b2-4e51-89f9-e8f6b4a394e1",
+      "name": "Sticky Note 8019b728",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        112,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## ✉️ Actions\nSend replies, log data, and notify",
+        "color": 6
+      },
+      "id": "35551156-882a-4278-8465-0bdef936dcc6",
+      "name": "Sticky Note 189c1d01",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        112,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## ⚠️ Error Handling\nCapture and handle workflow errors",
+        "color": 7
+      },
+      "id": "fd9aff2e-6ad1-4f06-857a-e2e8572a3e22",
+      "name": "Sticky Note 6bde1753",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        112,
+        304
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Email Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Email Data": {
+      "main": [
+        [
+          {
+            "node": "AI Email Classifier",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Combine Email & AI Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Email Classifier": {
+      "main": [
+        [
+          {
+            "node": "Combine Email & AI Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Email Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Email Classifier",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Email & AI Data": {
+      "main": [
+        [
+          {
+            "node": "Route by Category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Category": {
+      "main": [
+        [
+          {
+            "node": "Reply - Support",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply - Sales",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply - Complaint",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply - Career",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply - General",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Reply - Spam",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply - Support": {
+      "main": [
+        [
+          {
+            "node": "Merge All Replies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge All Replies": {
+      "main": [
+        [
+          {
+            "node": "Prepare for Logging",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply - Sales": {
+      "main": [
+        [
+          {
+            "node": "Merge All Replies",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Reply - Complaint": {
+      "main": [
+        [
+          {
+            "node": "Merge All Replies",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Reply - Career": {
+      "main": [
+        [
+          {
+            "node": "Merge All Replies",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Reply - General": {
+      "main": [
+        [
+          {
+            "node": "Merge All Replies",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "No Reply - Spam": {
+      "main": [
+        [
+          {
+            "node": "Merge All Replies",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    },
+    "Prepare for Logging": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Check if High Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if High Priority": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Log Error Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Error Details": {
+      "main": [
+        [
+          {
+            "node": "Notify Error via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "0ea4933e-dceb-4f46-bb75-bd10f87abdf7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4480a277d3a3d8eec81391e851900739fa7c666f432ef1aedb164268a7668eff"
+  },
+  "nodeGroups": [],
+  "id": "rdCIFS1HvI0eTbdu",
+  "tags": []
+}
